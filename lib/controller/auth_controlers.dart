@@ -106,6 +106,8 @@ class AuthApi {
         "user_name": userName,
         "password": hashedPassword,
         "salt": salt,
+        "is_disabled": false,
+        "is_ristricted": false,
       });
 
       addRegisteredUser(userStore, email: email, userName: userName);
@@ -117,7 +119,7 @@ class AuthApi {
               "password": hashedPassword,
               "salt": salt,
               "is_disabled": false,
-              "is_ristricted": false
+              "is_ristricted": false,
             }}"
           }),
           headers: {"Content-Type": "applilcation/json"});
