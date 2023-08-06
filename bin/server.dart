@@ -13,7 +13,12 @@ final router = AppRouter.router;
 
 void main() async {
   final Db db = Db(Env.mongoUrl);
-  await db.open().then((value) => print("connected to database"));
+
+  try {
+    await db.open().then((value) => print("connected to database"));
+  } catch (error) {
+    print(error);
+  }
 
   final store = db.collection("user_auth");
   final userStore = db.collection("user_data");
