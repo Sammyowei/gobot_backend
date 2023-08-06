@@ -12,17 +12,18 @@ import 'package:gobot_backend/src.dart';
 final router = AppRouter.router;
 
 void main() async {
-  final Db db = Db(Env.mongoUrl);
-
+  late Db db;
   try {
-    await db.open().then((value) => print("connected to database"));
+    db = await Db.create(Env.mongoUrl);
+    await db.open();
+    print("connected sucessfully");
   } catch (error) {
     print(error);
   }
 
   final store = db.collection("user_auth");
   final userStore = db.collection("user_data");
-  final secret = Env.secretAccessKey;
+  final secret = Env.accessToken;
 
   router.mount(
       "/auth/",
@@ -45,7 +46,7 @@ void main() async {
         router,
       );
 
-  final port = int.parse(Platform.environment['PORT'] ?? '8080');
+  final port = int.parse(Platform.environment['PORT'] ?? '3020');
   final server = await serve(handler, ip, port);
   print('Server listening on port ${server.port}');
 }
