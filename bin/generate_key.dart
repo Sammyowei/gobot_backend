@@ -1,8 +1,11 @@
-import 'package:gobot_backend/utils/secret_key_generator.dart';
+
+import 'package:gobot_backend/utils/utils.dart';
 
 void main() {
   final key1 = generateRandomKeys();
   final key2 = generateRandomKeys();
+  final otp = otpGenerator();
+
 
   final accessKey =
       key1.map((byte) => byte.toRadixString(16).padLeft(2, "0")).join();
@@ -15,6 +18,6 @@ void main() {
   };
 
   keys.forEach(
-    (key, value) => print("$key : $value"),
+    (key, value) => print("$key : $value \n\notp:$otp"),
   );
 }

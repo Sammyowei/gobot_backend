@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:gobot_backend/utils/jwt_util.dart';
 import 'package:shelf/shelf.dart';
@@ -41,4 +42,15 @@ Middleware checkAuthorization() {
       return null;
     },
   );
+}
+
+String otpGenerator() {
+  final int min = 10000;
+  final int max = 99999;
+
+  Random random = Random();
+
+  int otp = min + random.nextInt(max-min);
+
+  return otp.toString();
 }

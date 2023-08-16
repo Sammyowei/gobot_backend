@@ -12,9 +12,11 @@ import 'package:gobot_backend/src.dart';
 final router = AppRouter.router;
 
 void main() async {
+
+  bool prod = false;
   late Db db;
   try {
-    db = await Db.create(Env.mongoUrl);
+    db = prod == true?  await Db.create(Env.mongoUrl): Db("mongodb://localhost:27017/gobotdb");
     await db.open();
     print("connected sucessfully");
   } catch (error) {
