@@ -233,6 +233,7 @@ class AuthApi {
               "details": {
                 "token": token,
                 "user_id": id,
+                "auth-id": userID
               }
             },
           ),
