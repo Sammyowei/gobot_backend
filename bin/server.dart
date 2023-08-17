@@ -13,7 +13,7 @@ final router = AppRouter.router;
 
 void main() async {
 
-  bool prod = false;
+  bool prod = true;
   late Db db;
   try {
     db = prod == true?  await Db.create(Env.mongoUrl): Db("mongodb://localhost:27017/gobotdb");

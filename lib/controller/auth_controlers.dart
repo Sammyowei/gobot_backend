@@ -27,7 +27,9 @@ class AuthApi {
       ..post("/register", registerUser)
       ..post("/login", loginUser)
       ..post("/forgotPassword", forgotPasswordRequest)
-      ..post("/verifyOtp", verifyOtp);
+      ..post("/verifyOtp", verifyOtp)
+      ..patch("/logout", logOut);
+      
 
     return router;
   }
@@ -113,6 +115,7 @@ class AuthApi {
         "user_name": userName,
         "password": hashedPassword,
         "salt": salt,
+        "logged_in": false,
         "is_disabled": false,
         "is_ristricted": false,
         "otp": 660543
@@ -138,20 +141,20 @@ class AuthApi {
   loginUser(Request req) async {
     final payload = await req.readAsString();
     final userInfo = json.decode(payload);
-    final emailOrUser = userInfo["email_or_username"];
+    final emailAddress = userInfo["email_address"];
     final password = userInfo["password"];
 
-    if (emailOrUser == null || password == null) {
+    if (emailAddress == null || password == null) {
       var response = {
         "error": {
           "message": {
-            "email_or_username": "require this field.",
+            "email_address": "require this field.",
             "password": "require this field."
           }
         }
       };
-      if (emailOrUser != null) {
-        response["error"]?["message"]?.remove("email_or_username");
+      if (emailAddress != null) {
+        response["error"]?["message"]?.remove("email_address");
       }
       if (password != null) {
         response["error"]?["message"]?.remove("password");
@@ -160,36 +163,32 @@ class AuthApi {
       return Response.forbidden(json.encode(response),
           headers: {"Content-Type": "application/json"});
     } else {
-      if (emailOrUser is! String) {
+      if (emailAddress is! String) {
         var response = {
           "error": {
-            "message": {"email_or_username": "invalid data type"}
+            "message": {"email_address": "invalid data type"}
           }
         };
         return Response.badRequest(body: json.encode(response), headers: {
           HttpHeaders.contentTypeHeader: ContentType.json.mimeType
         });
       }
-      final userEmail = await store.findOne(
-        where.eq("email_address", emailOrUser),
-      );
-      final userName = await store.findOne(
-        where.eq("user_name", emailOrUser),
+      final authEmail = await store.findOne(
+        where.eq("email_address", emailAddress),
       );
 
-      var emailAvailable = userEmail != null;
-      var userNameAvailable = userName != null;
+      var emailAvailable = authEmail != null;
+
       print("${{
         "email": emailAvailable,
-        "username": userNameAvailable,
       }}");
-      final user = userEmail ?? userName;
+      var user = authEmail;
 
       if (user == null) {
         return Response.badRequest(
             body: json.encode(
               {
-                "error": {"message": "this user does not exist"}
+                "error": {"message": "user does not exist"}
               },
             ),
             headers: {"Content-Type": "application/json"});
@@ -207,14 +206,33 @@ class AuthApi {
           headers: {"Content-Type": "application/json"},
         );
       } else {
+        final getUserID = await userStore.findOne(
+          where.eq("email", emailAddress),
+        );
+
+        print(getUserID?["_id"]);
+        if (getUserID == null) {
+          return Response.forbidden("404 error: not found");
+        }
+
+        final id = getUserID["_id"];
+        print(id);
         final userID = (user["_id"] as ObjectId).toHexString();
         final token = generateJWT(userID, "http://localhost", secret);
+        await store.updateOne(
+          where.eq(
+            "_id",
+            ObjectId.fromHexString(userID),
+          ),
+          modify.set("logged_in", true),
+        );
         return Response.ok(
           json.encode(
             {
               "message": "user logged in sucessfully",
               "details": {
                 "token": token,
+                "user_id": id,
               }
             },
           ),
@@ -270,7 +288,7 @@ class AuthApi {
     );
     final otp = int.parse(otpGenerator());
     await updateUserOtp(store, id: id, otp: otp);
-    await sendOTPCode(otp, username?["user_name"]);
+    await sendOTPCode(otp, username?["user_name"], username?["email_address"]);
     return Response.ok(json.encode({
       "messages": {
         "details": {
@@ -496,6 +514,38 @@ class AuthApi {
     );
   }
 
+// TODO: log out
+
+  logOut(Request req) async {
+    final payload = await req.readAsString();
+    var response = <String, dynamic>{};
+    final jsonData = json.decode(payload);
+
+    final authID = jsonData["auth_id"];
+
+    if (authID == null) {
+      response = {
+        "error": {
+          "message": {
+            "auth_id": "required this field",
+          }
+        }
+      };
+      return Response.badRequest(
+        body: json.encode(response),
+        headers: headers,
+      );
+    }
+
+    final id = ObjectId.fromHexString(authID);
+    print(id);
+    await store.updateOne(
+      where.eq("_id", id),
+      modify.set("logged_in", false),
+    );
+    response = {"message": "you have sucessfully logged out"};
+    return Response.ok(json.encode(response), headers: headers);
+  }
   // TODO: end of the class
 }
 
@@ -507,7 +557,7 @@ void addRegisteredUser(DbCollection store,
   final time = "${date.hour}:${date.minute}:${date.second}";
 
   await store.insertOne({
-    "email": email,
+    "email_address": email,
     "user_name": userName,
     "created_at": "$day at $time",
     "updated_at": "$day  at $time",
@@ -527,7 +577,7 @@ Future<void> updateUserOtp(DbCollection store,
   await store.updateOne(updateQuery, updateOtp);
 }
 
-Future<void> sendOTPCode(int otp, String userName) async {
+Future<void> sendOTPCode(int otp, String userName, String email) async {
   final username = "noreply@smartpayy.com";
   final password = "Samuelson200417";
 
@@ -541,7 +591,7 @@ Future<void> sendOTPCode(int otp, String userName) async {
 
   final message = Message()
     ..from = Address(username)
-    ..recipients.add("samuelsonowei04@gmail.com")
+    ..recipients.add(email)
     ..subject = "Forgot Password Recovery"
     ..html = """
 <!DOCTYPE html>

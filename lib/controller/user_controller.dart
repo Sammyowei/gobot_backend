@@ -28,35 +28,32 @@ class UserApi {
   };
 
   getUser(Request req) async {
-    // final payload = await req.readAsString();
-    // final jsonData = json.decode(payload);
-    // final id = jsonData["_id"];
-
     var response = <String, dynamic>{};
+    final head = req.headers;
+    final id = head["User-ID"];
+    print(id);
 
-    // if (id == null) {
-    //   response = {
-    //     "error": {
-    //       "_id": "the user ID is required",
-    //     },
-    //   };
+    if (id == null) {
+      response = {
+        "error": {"_id": "this field is required"},
+      };
 
-    //   return Response.badRequest(body: json.encode(response), headers: headers);
-    // }
+      return Response.badRequest(body: json.encode(response), headers: headers);
+    }
+    print(id);
+    final userId = ObjectId.fromHexString(id);
+    final query = where.eq("_id", userId);
 
-    // final userId = ObjectId.fromHexString(id);
-    // final query = where.eq("_id", userId);
+    final user = await store.findOne(query);
 
-    // final user = await store.findOne(query);
+    if (user == null) {
+      response = {
+        "error": {"message": "this user cannot be found in the database"}
+      };
+      return Response.notFound(json.encode(response), headers: headers);
+    }
 
-    // if (user == null) {
-    //   response = {
-    //     "error": {"message": "this user cannot be found in the database"}
-    //   };
-    //   return Response.notFound(json.encode(response), headers: headers);
-    // }
-
-    // response = user;
+    response = user;
 
     return Response.ok(json.encode(response), headers: headers);
   }
