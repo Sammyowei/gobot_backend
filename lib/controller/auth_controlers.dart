@@ -289,7 +289,7 @@ class AuthApi {
     );
     final otp = int.parse(otpGenerator());
     await updateUserOtp(store, id: id, otp: otp);
-    await sendOTPCode(otp, username?["user_name"], username?["email_address"]);
+    await sendOTPCode(otp, username!["user_name"], email);
     return Response.ok(json.encode({
       "messages": {
         "details": {
